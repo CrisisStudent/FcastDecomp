@@ -26,32 +26,63 @@ endif
 if !dogui=1 then
 
 	'2.1 Execute user dialog
-	%fd_sample = ""
+	%fd_eq_name = _this.@name
 
-	@uidialog("caption","Forecast decomposition settings")	
+	%fd_alias_list = ""
 
+	!fd_include_addf = 1
+
+	%fd_sample = @pagesmpl
+	%fd_graph_name = "gp_fd"
+
+	!fd_keep_table = 0
+
+	@uidialog("caption","Forecast decomposition settings", _
+		"edit",%fd_alias_list,"Enter scenario alias(es)", _
+		"check",!fd_include_addf,"Include add-factors", _
+		"edit",%fd_sample,"Enter graph sample", _
+		"edit",%fd_graph_name,"Enter graph name", _		 
+		"check",!fd_keep_table,"Store the decomposition table")
+
+	for %set include_addf keep_table
+		if !fd_{%set}=1 then
+			%fd_{%set} = "T"
+		else
+			%fd_{%set} = "F"
+		endif
+	next
 
 else
 
-
 	'2.2 Load settings from options
 	%fd_eq_name = _this.@name
+
+	%fd_alias_list = @equaloption("ALIAS_LIST")	
+		
+	%fd_include_addf = @equaloption("INCLUDE_ADDF")	 'scenario specific add-factors by default?
+
+	if @isempty(%fd_include_addf) then
+		%fd_include_addf= "f"
+	endif
+
 	%fd_sample =  @equaloption("SAMPLE")	
 	
 	if @isempty(%fd_sample) then
 		%fd_sample = @pagesmpl
 	endif
 
-	%fd_alias_list = @equaloption("ALIAS_LIST")	
-		
-	%fd_include_addf = @equaloption("INCLUDE_ADDF")	
+	%fd_graph_name = @equaloption("GRAPH_NAME")
 
-	%fd_use_table = @equaloption("USE_TABLE")	
-	%fd_keep_table = @equaloption("KEEP_TABLE")	
+	%fd_use_table = @equaloption("USE_TABLE")
 
-	
 	if @isempty(%fd_use_table) then
 		%fd_use_table = "f"
+	endif
+	
+	%fd_keep_table = @equaloption("KEEP_TABLE")	
+	
+	if @isempty(%fd_keep_table) then
+		%fd_keep_table = "f"
 	endif
 endif
 
@@ -66,7 +97,7 @@ if @upper(%fd_use_table)="F" or @isobject("tb_forecast_decomposition")=0 then
 endif
 
 if tb_forecast_decomposition.@rows>1 then
-	call forecast_decomposition_graph("tb_forecast_decomposition",%fd_alias_list ,%fd_sample)
+	call forecast_decomposition_graph("tb_forecast_decomposition",%fd_alias_list ,%fd_sample,%fd_graph_name)
 endif
  
 delete(noerr)  sc_coef st_driver  m_fd st_eq_varlist gr_regs st_graph_string
@@ -302,50 +333,9 @@ endsub
 
 
 
-
-
 ' ##################################################################################################################
 
-subroutine driver_sum(string %target,scalar !transformation)
-
-	%target_sum = ""
-	if @instr(@upper(st_eq_varlist)," C ")>0 then 
-		for !x = 2 to  gr_drs.@count-1+!transformation
-			if !transformation= 1 then
-				%target_sum = %target_sum + "@d(driver" +@str(!x-1) + ")+"
-			else
-				%target_sum = %target_sum + "driver" +@str(!x-1) + "+"
-			endif
-		next
-
-		if !transformation <> 1 then
-			%target_sum = %target_sum + "driver" +@str(0) 
-		else
-			%target_sum = @left(%target_sum,@length(%target_sum)-1)
-		endif
-	else
-		for !x = 2 to  gr_drs.@count
-			%target_sum = %target_sum + "driver" +@str(!x-1) + "+"
-		next
-		%target_sum=@left(%target_sum,@length(%target_sum)-1)
-	endif	
-	
-	if @wcount(%target_sum)>0 then
-		series {%target}_pure = {%target_sum}
-	else
-		!nopure = 0
-	endif
-
-endsub
-
-' ##################################################################################################################
-
-
-
-
-' ##################################################################################################################
-
-subroutine forecast_decomposition_graph(string %tb_name,string %sub_alias_list, string %sub_graph_sample)
+subroutine forecast_decomposition_graph(string %tb_name,string %sub_alias_list, string %sub_fd_sample, string %sub_fd_graph_name)
 
 '1. Creating graph string
 
@@ -399,15 +389,21 @@ for %es {st_equation_vars}
 next
 
 '2. Creating graph
-delete(noerr) gp_fd
 
-smpl {%sub_graph_sample}
-graph gp_fd.line {st_graph_string}
+if @isempty(%sub_fd_graph_name) then
+	%sub_fd_graph_name = "gp_fd"
+endif
 
+if @isobject(%sub_fd_graph_name) then
+	%sub_fd_graph_name = @getnextname(%sub_fd_graph_name)
+endif
+
+smpl {%sub_fd_sample}
+graph {%sub_fd_graph_name}.line {st_graph_string}
 
 ' Adding legend
 %legend = "Dependent variable - " +  @replace(@upper({%tb_name}(2,2)),"_SALIAS","")
-gp_fd.setelem(1) legend({%legend}) symbol(filledsquare)
+{%sub_fd_graph_name}.setelem(1) legend({%legend}) symbol(filledsquare)
 
 !e = 1 
 
@@ -417,7 +413,7 @@ if {%tb_name}(3,1)="0"  then
 		%legend = "Constant" 
 	
 		!e = !e+1
-		gp_fd.setelem(!e) legend({%legend})
+		{%sub_fd_graph_name}.setelem(!e) legend({%legend})
 	endif
 
 	!driver_row_start = 4
@@ -429,8 +425,10 @@ for !tr = !driver_row_start  to {%tb_name}.@rows
 	%legend = "Driver " + {%tb_name}(!tr,1)  + " - " +  @replace(@upper({%tb_name}(!tr,2)),"_SALIAS","")
 
 	!e = !e+1
-	gp_fd.setelem(!e) legend({%legend})
+	{%sub_fd_graph_name}.setelem(!e) legend({%legend})
 next
+
+'{%sub_fd_graph_name}
 
 endsub
 
