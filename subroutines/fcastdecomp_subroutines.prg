@@ -6,7 +6,7 @@
 
 ' ##################################################################################################################
 
-subroutine forecast_decomposition_table(string %eq_name, string %sub_include_addf)
+subroutine forecast_decomposition_table(string %eq_name, string %sub_include_addf, string %sub_include_sum)
 
 ' 1. Settings
 
@@ -37,17 +37,17 @@ endif
 string st_equation_vars = @upper({%sub_model_name}.@varlist)
 
 ' 4. Creating group of drivers
-if {%eq_name}.@bylist = 1 then
-	call drivers_table(%eq_name, %sub_include_addf)
+if {%eq_name}.@bylist<>0 then
+	call drivers_table(%eq_name, %sub_include_addf, %sub_include_sum)
 else
-	@uiprompt("Does not work for equations estimated by explicit formula.")
+	@uiprompt("Forecast decomposition does not work for equations estimated by explicit formula.")
 endif
 
 endsub
 
 ' $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-subroutine drivers_table(string %eq_name, string %sub_include_addf)
+subroutine drivers_table(string %eq_name, string %sub_include_addf, string %sub_include_sum)
 
 !pdl_driver_present = 0
 !driver_n = 0
@@ -133,15 +133,34 @@ endif
 ' Adding add-factor
 
 if @upper(%sub_include_addf)="T" then
-	
+
 	%dv = @word(st_eq_varlist,1)
 	group gr_dv {%dv}
 	%target = @word(gr_dv.@depends,1)
 
-	tb_forecast_decomposition(1+!driver_n +1,1) = "ADDF"
-	tb_forecast_decomposition(1+!driver_n +1,2) = %target + "_a" + "_salias"
-	tb_forecast_decomposition(1+!driver_n +1,3) =  %target + "_a" +"_salias1" + "-" + %target + "_a" +  "_salias2" 
+	tb_forecast_decomposition(2+!driver_n +1,1) = "ADDF"
+	tb_forecast_decomposition(2+!driver_n +1,2) = %target + "_a" + "_salias"
+	tb_forecast_decomposition(2+!driver_n +1,3) =  %target + "_a" +"_salias1" + "-" + %target + "_a" +  "_salias2" 
 endif	
+
+' Adding driver sum
+if @upper(%sub_include_sum)="T" then 
+
+	!sum_row = tb_forecast_decomposition.@rows+1
+
+	for !dtc = 2 to 3
+		%driver_sum = ""
+		for !d=1 to !driver_n
+			%driver_sum = %driver_sum  + tb_forecast_decomposition(1+!d+1,!dtc)  + "+"
+		next
+	
+		%driver_sum = @left(%driver_sum,@length(%driver_sum)-1)
+	
+		tb_forecast_decomposition(!sum_row,1) = "SUM"
+		tb_forecast_decomposition(!sum_row,!dtc) = %driver_sum
+	next
+
+endif
 
 endsub
 
@@ -273,7 +292,7 @@ endsub
 
 ' ##################################################################################################################
 
-subroutine forecast_decomposition_graph(string %tb_name,string %sub_fd_scenarios, string %sub_fd_sample, string %sub_fd_graph_name)
+subroutine forecast_decomposition_graph(string %tb_name,string %sub_fd_scenarios, string %sub_fd_sample, string %sub_fd_graph_name, string %sub_include_addf, string %sub_include_sum)
 
 '1. Creating graph string
 
@@ -310,7 +329,19 @@ for !tr = 2 to {%tb_name}.@rows
 		%driver_string = @replace(@upper(%driver_string),"_SALIAS",%primary_alias1)
 	endif
 
-	st_graph_string = st_graph_string  + %driver_string + " "
+	!include_driver = 1
+
+	if {%tb_name}(!tr,1)="ADDF" and @upper(%sub_include_addf)="F" then
+		!include_driver = 0
+	endif 
+
+	if {%tb_name}(!tr,1)="SUM" and @upper(%sub_include_sum)="F" then
+		!include_driver = 0
+	endif 
+
+	if !include_driver = 1 then
+		st_graph_string = st_graph_string  + %driver_string + " "
+	endif
 next
 
 ' Removing scenario alias for nonexisting scenario series 
@@ -325,8 +356,6 @@ for %es {st_equation_vars}
 		endif
 	next
 next
-
-
 
 '2. Creating graph
 
@@ -362,7 +391,20 @@ else
 endif
 
 for !tr = !driver_row_start  to {%tb_name}.@rows
-	%legend = "Driver " + {%tb_name}(!tr,1)  + " - " +  @replace(@upper({%tb_name}(!tr,2)),"_SALIAS","")
+
+	%legend = ""
+
+	if {%tb_name}(!tr,1)="ADDF" then
+		%legend = "Add-factor"
+	endif	
+
+	if {%tb_name}(!tr,1)="SUM" then
+		%legend = "Driver sum"
+	endif	
+
+	if @isempty(%legend) then
+		%legend = "Driver " + {%tb_name}(!tr,1)  + " - " +  @replace(@upper({%tb_name}(!tr,2)),"_SALIAS","")
+	endif
 
 	!e = !e+1
 	{%sub_fd_graph_name}.setelem(!e) legend({%legend})

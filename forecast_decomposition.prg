@@ -23,6 +23,7 @@ if !dogui=1 then
 	%fd_scenarios = ""
 
 	!fd_include_addf = 0
+	!fd_include_sum = 0
 
 	%fd_sample = @pagesmpl
 	%fd_graph_name = "gp_fd"
@@ -32,11 +33,12 @@ if !dogui=1 then
 	@uidialog("caption","Forecast decomposition settings", _
 		"edit",%fd_alias_list,"Enter scenario alias(es)", _
 		"check",!fd_include_addf,"Include add-factors", _
+		"check",!fd_include_sum,"Include driver sum", _
 		"edit",%fd_sample,"Enter graph sample", _
 		"edit",%fd_graph_name,"Enter graph name", _		 
 		"check",!fd_keep_table,"Store the decomposition table")
 
-	for %set include_addf keep_table
+	for %set include_addf include_sum  keep_table
 		if !fd_{%set}=1 then
 			%fd_{%set} = "T"
 		else
@@ -53,10 +55,16 @@ else
 
 	%fd_alias_list = @equaloption("ALIAS_LIST")
 		
-	%fd_include_addf = @equaloption("INCLUDE_ADDF")	 'scenario specific add-factors by default?
+	%fd_include_addf = @equaloption("INCLUDE_ADDF")	
 
 	if @isempty(%fd_include_addf) then
 		%fd_include_addf= "f"
+	endif
+
+	%fd_include_sum = @equaloption("INCLUDE_SUM")	
+
+	if @isempty(%fd_include_sum) then
+		%fd_include_sum= "f"
 	endif
 
 	%fd_sample =  @equaloption("SAMPLE")	
@@ -87,11 +95,11 @@ endif
 ' ##################################################################################################################
 
 if @upper(%fd_use_table)="F" or @isobject("tb_forecast_decomposition")=0 then
-	call forecast_decomposition_table(%fd_eq_name,%fd_include_addf)
+	call forecast_decomposition_table(%fd_eq_name,%fd_include_addf,%fd_include_sum)
 endif
 
 if tb_forecast_decomposition.@rows>1 then
-	call forecast_decomposition_graph("tb_forecast_decomposition",%fd_alias_list ,%fd_sample,%fd_graph_name)
+	call forecast_decomposition_graph("tb_forecast_decomposition",%fd_alias_list ,%fd_sample,%fd_graph_name,%fd_include_addf,%fd_include_sum)
 endif
  
 delete(noerr)  sc_coef st_driver  m_fd st_eq_varlist st_eq_spec  gr_regs st_graph_string
