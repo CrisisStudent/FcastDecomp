@@ -31,7 +31,7 @@ if !dogui=1 then
 	!fd_keep_table = 0
 
 	@uidialog("caption","Forecast decomposition settings", _
-		"edit",%fd_alias_list,"Enter scenario alias(es)", _
+		"edit",%fd_scenarios,"Enter scenario alias(es)", _
 		"check",!fd_include_addf,"Include add-factors", _
 		"check",!fd_include_sum,"Include driver sum", _
 		"edit",%fd_sample,"Enter graph sample", _
@@ -53,7 +53,7 @@ else
 	'2.2 Load settings from options
 	%fd_eq_name = _this.@name
 
-	%fd_alias_list = @equaloption("ALIAS_LIST")
+	%fd_scenarios = @equaloption("SCENARIOS")
 		
 	%fd_include_addf = @equaloption("INCLUDE_ADDF")	
 
@@ -99,7 +99,7 @@ if @upper(%fd_use_table)="F" or @isobject("tb_forecast_decomposition")=0 then
 endif
 
 if tb_forecast_decomposition.@rows>1 then
-	call forecast_decomposition_graph("tb_forecast_decomposition",%fd_alias_list ,%fd_sample,%fd_graph_name,%fd_include_addf,%fd_include_sum)
+	call forecast_decomposition_graph("tb_forecast_decomposition",%fd_scenarios ,%fd_sample,%fd_graph_name,%fd_include_addf,%fd_include_sum)
 endif
  
 delete(noerr)  sc_coef st_driver  m_fd st_eq_varlist st_eq_spec  gr_regs st_graph_string

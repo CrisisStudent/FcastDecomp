@@ -296,7 +296,7 @@ subroutine forecast_decomposition_graph(string %tb_name,string %sub_fd_scenarios
 
 '1. Creating graph string
 
-' Dealing with separate alias for 
+'Extracting primary and seconday scenario aliases
 for !sub_alias = 1 to @wcount(%sub_fd_scenarios)
 	%sub_alias = @word(%sub_fd_scenarios,!sub_alias)
 
@@ -369,6 +369,7 @@ endif
 
 smpl {%sub_fd_sample}
 graph {%sub_fd_graph_name}.line {st_graph_string}
+{%sub_fd_graph_name}.setattr("graph_string") {st_graph_string}
 
 ' Adding legend
 %legend = "Dependent variable - " +  @replace(@upper({%tb_name}(2,2)),"_SALIAS","")
@@ -409,6 +410,7 @@ for !tr = !driver_row_start  to {%tb_name}.@rows
 	!e = !e+1
 	{%sub_fd_graph_name}.setelem(!e) legend({%legend})
 next
+
 
 if !dogui=1 then
 	{%sub_fd_graph_name}.display
