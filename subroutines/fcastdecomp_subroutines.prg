@@ -364,7 +364,8 @@ if @isempty(%sub_fd_graph_name) then
 endif
 
 if @isobject(%sub_fd_graph_name) then
-	%sub_fd_graph_name = @getnextname(%sub_fd_graph_name)
+	%sub_old_graph_name = @getnextname(%sub_fd_graph_name + "_o")
+	rename {%sub_fd_graph_name} {%sub_old_graph_name}
 endif
 
 smpl {%sub_fd_sample}
@@ -372,10 +373,13 @@ graph {%sub_fd_graph_name}.line {st_graph_string}
 {%sub_fd_graph_name}.setattr("graph_string") {st_graph_string}
 
 ' Adding legend
-%legend = "Dependent variable - " +  @replace(@upper({%tb_name}(2,2)),"_SALIAS","")
+'%legend = "Dependent variable - " +  @replace(@upper({%tb_name}(2,2)),"_SALIAS","")
+%legend = "Dependent variable - " +  @word(st_graph_string,1)
 {%sub_fd_graph_name}.setelem(1) legend({%legend}) symbol(filledsquare)
 
 !e = 1 
+
+!constant_included = 0 
 
 if {%tb_name}(3,1)="0"  then
 
@@ -384,33 +388,39 @@ if {%tb_name}(3,1)="0"  then
 	
 		!e = !e+1
 		{%sub_fd_graph_name}.setelem(!e) legend({%legend})
+
+		!constant_included = 1
 	endif
 
-	!driver_row_start = 4
-else
-	!driver_row_start = 3
+'	!driver_row_start = 4
+'else
+'	!driver_row_start = 3
 endif
 
-for !tr = !driver_row_start  to {%tb_name}.@rows
+'for !tr = !driver_row_start  to {%tb_name}.@rows
+for !d = 2 to @wcount(st_graph_string)
 
 	%legend = ""
 
-	if {%tb_name}(!tr,1)="ADDF" then
+	if {%tb_name}(!d+1,1)="ADDF" then
 		%legend = "Add-factor"
 	endif	
 
-	if {%tb_name}(!tr,1)="SUM" then
+	if {%tb_name}(!d+1,1)="SUM" then
 		%legend = "Driver sum"
 	endif	
 
 	if @isempty(%legend) then
-		%legend = "Driver " + {%tb_name}(!tr,1)  + " - " +  @replace(@upper({%tb_name}(!tr,2)),"_SALIAS","")
+		'%legend = "Driver " + {%tb_name}(!tr,1)  + " - " +  @replace(@upper({%tb_name}(!tr,2)),"_SALIAS","")
+		%legend = "Driver " + @str(!d-1)  + ": " + @word(st_graph_string,!d+!constant_included)
 	endif
 
 	!e = !e+1
 	{%sub_fd_graph_name}.setelem(!e) legend({%legend})
 next
 
+
+stop
 
 if !dogui=1 then
 	{%sub_fd_graph_name}.display
