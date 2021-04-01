@@ -419,9 +419,6 @@ for !d = 2 to @wcount(st_graph_string)
 	{%sub_fd_graph_name}.setelem(!e) legend({%legend})
 next
 
-
-stop
-
 if !dogui=1 then
 	{%sub_fd_graph_name}.display
 endif
