@@ -1,0 +1,8 @@
+<item>
+<title>fcastdecomp</title>
+<path>forecast_decomposition.prg</path>
+<version>1.0</version>
+<description>Creates graph that decomposes forecast for left-hand side variable into individual drivers.</description>
+<link>https://github.com/CrisisStudent/FcastDecomp/Package/FcastDecomp.aipz</link>
+<pubDate>4 Apr 2021</pubDate>
+</item>
