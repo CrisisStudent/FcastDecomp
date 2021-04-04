@@ -12,5 +12,3 @@ eq.fcastdecomp(scenarios="_sd",sample="2020q1 2025q4")
 
 eq.fcastdecomp(scenarios="_sd _bl",sample="2020q1 2025q4")
 
-
-
